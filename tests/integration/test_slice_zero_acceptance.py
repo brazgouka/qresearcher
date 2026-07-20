@@ -98,8 +98,10 @@ def test_slice_zero_rejects_noise_and_accepts_real_effect(
     # Simulate a realistic search: hundreds of prior trials already sit in the
     # registry, so the Bonferroni correction this test's two trials face reflects a
     # genuine multiple-testing scale (spec §1.2), not a favorably tiny count of 1.
+    # Left pending (never evaluated) — count_trials() counts reservations regardless
+    # (spec §4: the generator can't emit a candidate without it being recorded).
     for i in range(998):
-        registry.log_trial(f"filler_{i}", {"type": "filler"}, i, "v0", "in_sample", 0.0, 1.0)
+        registry.reserve_trial(f"filler_{i}", {"type": "filler"}, i, "v0")
 
     real_permutation = permutation_test(
         backtester,
@@ -120,20 +122,26 @@ def test_slice_zero_rejects_noise_and_accepts_real_effect(
         seed=6,
     )
 
-    registry.log_trial(
+    real_trial_id = registry.reserve_trial(
         content_hash("hypothesis_trial", {"config": hypothesis.config(), "symbol": "REAL"}),
         hypothesis.config(),
         seed=5,
         code_version="v0",
+    )
+    registry.record_result(
+        real_trial_id,
         regime="in_sample",
         observed_sharpe=real_permutation.observed_sharpe,
         permutation_p_value=real_permutation.p_value,
     )
-    registry.log_trial(
+    noise_trial_id = registry.reserve_trial(
         content_hash("hypothesis_trial", {"config": hypothesis.config(), "symbol": "NOISE"}),
         hypothesis.config(),
         seed=6,
         code_version="v0",
+    )
+    registry.record_result(
+        noise_trial_id,
         regime="in_sample",
         observed_sharpe=noise_permutation.observed_sharpe,
         permutation_p_value=noise_permutation.p_value,

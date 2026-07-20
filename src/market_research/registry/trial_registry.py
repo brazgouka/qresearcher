@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import Literal, Protocol
 
 import polars as pl
+
+TrialStatus = Literal["pending", "evaluated"]
 
 
 @dataclass(frozen=True)
@@ -13,31 +15,36 @@ class TrialRecord:
     config: dict
     seed: int
     code_version: str
-    regime: str
-    observed_sharpe: float
-    permutation_p_value: float
+    status: TrialStatus
+    regime: str | None
+    observed_sharpe: float | None
+    permutation_p_value: float | None
     logged_at: str
 
 
 class TrialRegistry(Protocol):
-    """The append-only ledger every search writes to (spec §1.2, §3).
+    """The append-only ledger every search writes to (spec §1.2, §3, §4).
 
-    Every hypothesis ever evaluated is logged here — survivors and rejects alike.
-    `count_trials()` is what the Bonferroni correction in `validation.Validator`
-    divides by, so this registry is the thing standing between "we found an edge" and
-    "we found the best of 10,000 coin flips."
+    Reservation and evaluation are two separate calls: "the generator cannot emit a
+    hypothesis without the registry recording it" (spec §4) means the moment a
+    candidate is produced — not once its backtest finishes — it must already be in the
+    ledger. `count_trials()` counts every reserved row, evaluated or not; this is what
+    the Bonferroni correction in `validation.Validator` divides by, so this registry is
+    the thing standing between "we found an edge" and "we found the best of 10,000
+    coin flips."
     """
 
-    def log_trial(
+    def reserve_trial(
+        self, config_hash: str, config: dict, seed: int, code_version: str
+    ) -> str: ...
+
+    def record_result(
         self,
-        config_hash: str,
-        config: dict,
-        seed: int,
-        code_version: str,
+        trial_id: str,
         regime: str,
         observed_sharpe: float,
         permutation_p_value: float,
-    ) -> str: ...
+    ) -> None: ...
 
     def count_trials(self) -> int: ...
 

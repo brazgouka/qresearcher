@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS trials (
     config VARCHAR,
     seed INTEGER,
     code_version VARCHAR,
+    status VARCHAR,
     regime VARCHAR,
     observed_sharpe DOUBLE,
     permutation_p_value DOUBLE,
@@ -36,33 +37,43 @@ class DuckDBTrialRegistry:
         self._store = DuckDBStore(db_path)
         self._store.execute(_CREATE_TABLE)
 
-    def log_trial(
-        self,
-        config_hash: str,
-        config: dict,
-        seed: int,
-        code_version: str,
-        regime: str,
-        observed_sharpe: float,
-        permutation_p_value: float,
-    ) -> str:
+    def reserve_trial(self, config_hash: str, config: dict, seed: int, code_version: str) -> str:
         trial_id = str(uuid.uuid4())
         logged_at = datetime.now(UTC).isoformat()
         self._store.execute(
-            "INSERT INTO trials VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO trials VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             [
                 trial_id,
                 config_hash,
                 json.dumps(config, sort_keys=True),
                 seed,
                 code_version,
-                regime,
-                observed_sharpe,
-                permutation_p_value,
+                "pending",
+                None,
+                None,
+                None,
                 logged_at,
             ],
         )
         return trial_id
+
+    def record_result(
+        self,
+        trial_id: str,
+        regime: str,
+        observed_sharpe: float,
+        permutation_p_value: float,
+    ) -> None:
+        if self._store.query("SELECT 1 FROM trials WHERE trial_id = ?", [trial_id]).height == 0:
+            raise KeyError(f"No reserved trial with id {trial_id!r}")
+        self._store.execute(
+            """
+            UPDATE trials
+            SET status = 'evaluated', regime = ?, observed_sharpe = ?, permutation_p_value = ?
+            WHERE trial_id = ?
+            """,
+            [regime, observed_sharpe, permutation_p_value, trial_id],
+        )
 
     def count_trials(self) -> int:
         return int(self._store.query("SELECT COUNT(*) AS n FROM trials")["n"][0])
@@ -78,6 +89,7 @@ class DuckDBTrialRegistry:
             config=json.loads(row["config"]),
             seed=row["seed"],
             code_version=row["code_version"],
+            status=row["status"],
             regime=row["regime"],
             observed_sharpe=row["observed_sharpe"],
             permutation_p_value=row["permutation_p_value"],
