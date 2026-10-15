@@ -67,9 +67,9 @@ class EventDrivenBacktester:
         )
         frame = frame.with_columns((pl.col("turnover") * costs.cost_rate).alias("cost"))
         frame = frame.with_columns(
-            (
-                pl.col("exposure") * pl.col("asset_return").fill_null(0.0) - pl.col("cost")
-            ).alias("strategy_return")
+            (pl.col("exposure") * pl.col("asset_return").fill_null(0.0) - pl.col("cost")).alias(
+                "strategy_return"
+            )
         )
         frame = frame.with_columns(
             (1.0 + pl.col("strategy_return")).cum_prod().over("symbol").alias("equity")

@@ -54,9 +54,7 @@ def permutation_test(
     genuine predictive power should be a clear outlier against this null; a noise
     hypothesis should not.
     """
-    observed_result = backtester.run(
-        _FixedSignal(signal), data, costs, sizing, regime="in_sample"
-    )
+    observed_result = backtester.run(_FixedSignal(signal), data, costs, sizing, regime="in_sample")
     observed_sharpe = _sharpe(observed_result.frame["strategy_return"])
 
     symbols = data["symbol"]

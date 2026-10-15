@@ -23,9 +23,7 @@ class PurgedKFold:
         self.n_splits = n_splits
         self.embargo_frac = embargo_frac
 
-    def split(
-        self, t0: Sequence[date], t1: Sequence[date]
-    ) -> list[tuple[list[int], list[int]]]:
+    def split(self, t0: Sequence[date], t1: Sequence[date]) -> list[tuple[list[int], list[int]]]:
         n = len(t0)
         if len(t1) != n:
             raise ValueError("t0 and t1 must be the same length")

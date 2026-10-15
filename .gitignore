@@ -15,3 +15,6 @@ data/processed/
 *.duckdb
 .DS_Store
 .env
+
+# Private build spec (kept locally, not published)
+quant-research-platform-prompt.md

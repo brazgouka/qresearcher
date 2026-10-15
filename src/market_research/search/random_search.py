@@ -32,9 +32,7 @@ class RandomSearch(BaseSearch):
     ) -> list[SearchResult]:
         population = list(generator.generate())
         if not 1 <= n_samples <= len(population):
-            raise ValueError(
-                f"n_samples must be between 1 and {len(population)}, got {n_samples}"
-            )
+            raise ValueError(f"n_samples must be between 1 and {len(population)}, got {n_samples}")
 
         rng = np.random.default_rng(seed)
         sampled_indices = rng.choice(len(population), size=n_samples, replace=False)

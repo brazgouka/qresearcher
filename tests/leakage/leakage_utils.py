@@ -14,20 +14,14 @@ def assert_no_lookahead(feature: Any, frame: pl.DataFrame, symbol: str) -> None:
     that only passes because of an accidental Polars laziness quirk gets caught here.
     """
     symbol_frame = frame.filter(pl.col("symbol") == symbol).sort("date")
-    full = (
-        symbol_frame.lazy()
-        .with_columns(feature.transform(symbol_frame.lazy()))
-        .collect()
-    )
+    full = symbol_frame.lazy().with_columns(feature.transform(symbol_frame.lazy())).collect()
     n = symbol_frame.height
 
     checked = 0
     for t in range(feature.lookback, n):
         truncated_input = symbol_frame.head(t + 1)
         truncated = (
-            truncated_input.lazy()
-            .with_columns(feature.transform(truncated_input.lazy()))
-            .collect()
+            truncated_input.lazy().with_columns(feature.transform(truncated_input.lazy())).collect()
         )
         full_value = full[feature.name][t]
         truncated_value = truncated[feature.name][t]
